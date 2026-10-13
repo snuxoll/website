@@ -209,3 +209,53 @@ connectors:
       # lowercase if config is TRUE
       emailToLowercase: true
 ```
+
+### Token exchange
+
+The Microsoft connector supports [token exchange](/docs/guides/token-exchange/),
+which lets a client that already holds a Microsoft access token, for example
+from `az account get-access-token`, exchange it for a dex token without a
+browser login.
+
+Dex exchanges the submitted token with Microsoft through the
+[On-Behalf-Of flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-on-behalf-of-flow)
+for a Microsoft Graph token, then looks up the user and their groups just as it
+does for a browser login, so the resulting identity is the same. Microsoft only
+completes the exchange when the submitted token was issued for dex's own
+application. Tokens issued for any other application, including Microsoft Graph
+tokens, are rejected.
+
+Token exchange has the following requirements:
+
+- `tenant` must be configured to `<tenant uuid>` or `<tenant name>`.
+- Only access tokens are accepted as the `subject_token_type`.
+- Groups are always resolved, so the `Directory.Read.All` administrator consent
+  described in [Caveats](#caveats) is required.
+- The dex application must expose an API: an Application ID URI such as
+  `api://<dex client id>` and at least one delegated scope.
+- The application that obtains the submitted token must be allowed to request
+  that scope, either by adding it to the dex application's __Authorized client
+  applications__ or through user or administrator consent. For the Azure CLI,
+  authorize the client ID `04b07795-8ddb-461a-bbee-02f9e1bf7b46`.
+
+The connector needs no additional configuration; set up the client and the
+exchange request as described in the [token exchange guide](/docs/guides/token-exchange/),
+using the Microsoft connector's `connector_id`. With the Azure CLI logged in to
+the same tenant, request a token for the dex application to use as the
+`subject_token`:
+
+```sh
+$ export UPSTREAM_TOKEN=$(az account get-access-token \
+    --scope "api://$MICROSOFT_APPLICATION_ID/.default" \
+    --query accessToken -o tsv)
+```
+
+When an exchange is rejected, dex responds with `access_denied` and logs the
+reason as `failed to verify subject token`, including Microsoft's error code.
+Common ones are:
+
+| Error | Cause |
+|-------|-------|
+| `AADSTS65001` | The application that obtained the token isn't authorized for dex's exposed scope, or `Directory.Read.All` hasn't been consented. |
+| `AADSTS500131` | The token was issued for a different application. |
+| `AADSTS50013` | The token can't be used as an On-Behalf-Of assertion, e.g. a Microsoft Graph token. |

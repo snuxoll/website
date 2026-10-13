@@ -32,9 +32,12 @@ The authentication flow looks like this:
 
 ## Configuring dex
 
-Currently, only the [OIDC Connector][oidc-connector] supports token exchanges.
-For this flow, `clientID`, `clientSecret`, and `redirectURI` aren't required.
-`getUserInfo` is required if you want to exchange from access tokens to dex issued tokens.
+The [OIDC][oidc-connector], [GitLab][gitlab-connector] and [Microsoft][microsoft-connector] connectors support token exchanges.
+The Microsoft connector requires additional setup in Microsoft Entra ID,
+see [its documentation][microsoft-token-exchange].
+The example below uses the OIDC connector.
+For the OIDC connector, `clientID`, `clientSecret`, and `redirectURI` aren't required for this flow,
+and `getUserInfo` is required if you want to exchange from access tokens to dex issued tokens.
 
 As the user performing the token exchange will need the client secret,
 we configure the client as a [public client](/docs/configuration/custom-scopes-claims-clients/#public-clients).
@@ -225,3 +228,6 @@ jobs:
 [circleci]: https://circleci.com/docs/openid-connect-tokens/
 [gcp]: https://cloud.google.com/sdk/gcloud/reference/auth/print-access-token
 [oidc-connector]: https://dexidp.io/docs/connectors/oidc/
+[gitlab-connector]: https://dexidp.io/docs/connectors/gitlab/
+[microsoft-connector]: https://dexidp.io/docs/connectors/microsoft/
+[microsoft-token-exchange]: https://dexidp.io/docs/connectors/microsoft/#token-exchange
